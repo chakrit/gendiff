@@ -26,13 +26,29 @@ $ go get -v -u github.com/chakrit/gendiff
    generate the diffs.
 3. Loop on the resulting [`[]gendiff.Diff`](https://godoc.org/github.com/chakrit/gendiff#Diff)
    to inspect the diff. Switch on the `Op` field to determine what the diff entry
-   means.
+
 
 ```go
-type StringCompare struct {
-	LeftLines []string
-	RightLines []string
+switch d.Op {
+case gendiff.Match:
+    for i := d.Lstart; i < d.Lend; i++ {
+        fmt.Println("    "+compare.LeftLines[i])
+    }
+
+case gendiff.Delete:
+    for i := d.Lstart; i < d.Lend; i++ {
+        fmt.Println("--- "+compare.LeftLines[i])
+    }
+
+case gendiff.Insert:
+    for i := d.Rstart; i < d.Rend; i++ {
+        fmt.Println("+++ "+compare.RightLines[i])
+    }
 }
-
-
 ```
+
+See [`examples/main.go`](https://github.com/chakrit/gendiff/blob/master/examples/main.go) for a bit more complete example.
+
+# LICENSE
+
+MIT
