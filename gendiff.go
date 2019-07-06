@@ -1,35 +1,71 @@
+// Package gendiff provides a generic diff algorithm that can be applied to any
+// two list of data. For example, two slices of strings or two lists of objects.
+//
+// To use gendiff, first create a comparison type to store both list of data:
+//
+//     type Comparison struct {
+//         LeftLines []string
+//         RightLines []string
+//     }
+//
+// Then, implement the `gendiff.Interface` interface and call `Make` on it.
+// Optionally followed by a call to `Compact` if you wish to shorten the length
+// of the diffs.
+//
+// The resulting list of `Diff` should then be enumerated to find out what
+// operations to perform on the left list to arrive at the right list.
 package gendiff
 
+// Op marks the operation being done on a diff.
 type Op int
 
 const (
+	// noOp means nothing has been done, useful as sentinel values.
 	noOp = Op(iota)
-	Match
+
+	// Match means all items in the range on the left and right matched.
+	Match = Op(iota)
+
+	// Delete means items on the left was missing from the right.
+	// This means the items on the left have been deleted.
 	Delete
+
+	// Insert means items on the right was missing from the left.
+	// This means the items on the right have been newly inserted.
 	Insert
 )
 
+// String returns the name of the operation.
 func (o Op) String() string {
 	switch o {
-	case noOp:
-		return "noOp"
 	case Match:
 		return "match"
 	case Delete:
 		return "delete"
 	case Insert:
 		return "insert"
-	default:
-		panic("missing case in op.String() switch")
+	default: // noOp and others
+        return ""
 	}
 }
 
+// Interface allows you to use this package with any arbitrary data type.
+// The `Left` items are considered as the base values while the `Right` items
+// will be used as the compare values.
 type Interface interface {
 	LeftLen() int
 	RightLen() int
 	Equal(l, r int) bool
 }
 
+// Diff represents a single edit operation being done on the given list.
+// The `Op` field specifies the operation and the (Lstart, Lend) and
+// (Rstart, Rend) specify the start and end indexes on the left and right list
+// of items, respectively.
+//
+// For example, `Diff{Insert, 0, 0, 0, 3}` says that something has been inserted
+// into the left list at index 0 and the items that were inserted can be found
+// on the right list from index 0 to 3.
 type Diff struct {
 	Op     Op
 	Lstart int
@@ -38,6 +74,13 @@ type Diff struct {
 	Rend   int
 }
 
+// Len returns the length of the changes. If the operation is a `Match`, this is
+// the number of items in the current series of matches. If the operation is a
+// `Delete`, it is the number of items being deleted from the left list. If the
+// operation is `Insert`, it is the number of items being inserted from the
+// right list.
+//
+// Len returns -1 otherwise if `Op` is not a valid value.
 func (d Diff) Len() int {
 	switch d.Op {
 	case Match:
@@ -47,7 +90,7 @@ func (d Diff) Len() int {
 	case Insert:
 		return d.Rend - d.Rstart
 	default:
-		return 0
+		return -1
 	}
 }
 
@@ -56,6 +99,16 @@ type cell = struct {
 	lcs int // cumulative length of longest common substring
 }
 
+// Make creates a list of `Diff`, that is a list of operations that can be
+// performed on the left list to arrive at the right list state.
+//
+// Internally, it uses a variant of the longest-common-substring algorithm with
+// dynamic programming to obtain a set of `Match` operations. And then all the
+// operations in-between the matches are considered as `Insert` if it happens on
+// the right values and `Delete` if it happens on the left values.
+//
+// Performance should be something close to `O(NL * NR)` where NL and NR is the
+// number of items on the left and right list, respectively.
 func Make(iface Interface) []Diff {
 	var (
 		llen, rlen = iface.LeftLen(), iface.RightLen()
@@ -79,7 +132,7 @@ func Make(iface Interface) []Diff {
 		table[0][ridx] = cell{Insert, 0}
 	}
 
-	// compute lcs solution (and obtain the diff as a sideeffect)
+	// compute lcs solution and label the table with the right operations
 	for lidx = 1; lidx <= llen; lidx++ {
 		for ridx = 1; ridx <= rlen; ridx++ {
 			var (
@@ -149,6 +202,22 @@ func Make(iface Interface) []Diff {
 	return revdiffs
 }
 
+// Compact compacts the given list of Diffs such that a `Match`	longer than the
+// specified context length are trimmed to the context length. This is useful
+// if your application consider a long series of `Match` operations to be noise
+// and want to visually focus on the actual changes rather than the matches.
+//
+// Compact will return `nil` if no modifications exist inside the given list of
+// diffs. For example, running `Compact(diffs, 2)` on a series of
+//
+//     MMMMIIIMMMMDDDMMMM
+//
+// Where M=Match, I=Insert and D=Delete will result in the following:
+//
+//     MMIIIMM MMDDDMM
+//
+// The space in-between represents gaps in the index fields. You should handle
+// them accordingly (i.e. print a "skip" line, or advance related indexes.)
 func Compact(diffs []Diff, contextLen int) []Diff {
 	prefix := func(match Diff) Diff {
 		return Diff{
