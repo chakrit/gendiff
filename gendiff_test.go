@@ -77,18 +77,18 @@ const contextLen = 2
 var compactCases = []testcase{
 	// complete match should result in no diffs
 	// since compacting would remove all meaningless matches and
-    // the whole string matches
-	{"abc","abc", nil },
-	{"abcdef","abcdef", nil},
+	// the whole string matches
+	{"abc", "abc", nil},
+	{"abcdef", "abcdef", nil},
 
 	// prefixes suffixes
-	{"dddmmmm","mmmm", []Diff {
-		{ Delete,0, 3,0,0},
-		{ Match, 3, 5,0,2},
+	{"dddmmmm", "mmmm", []Diff{
+		{Delete, 0, 3, 0, 0},
+		{Match, 3, 5, 0, 2},
 	}},
-	{"mmmm","mmmmddd", []Diff {
-		{ Match, 2,4, 2,4},
-		{ Insert,4,4, 4,7},
+	{"mmmm", "mmmmddd", []Diff{
+		{Match, 2, 4, 2, 4},
+		{Insert, 4, 4, 4, 7},
 	}},
 
 	// longer strings
@@ -118,8 +118,8 @@ var compactCases = []testcase{
 
 func TestCompact(t *testing.T) {
 	for _, test := range compactCases {
-		t.Run(test.Name(), func(tt*testing.T) {
-            r.Equal(tt, test.diff, Compact(Make(test), contextLen))
+		t.Run(test.Name(), func(tt *testing.T) {
+			r.Equal(tt, test.diff, Compact(Make(test), contextLen))
 		})
 	}
 }

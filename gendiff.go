@@ -39,13 +39,13 @@ type Diff struct {
 }
 
 func (d Diff) Len() int {
-	switch d.Op{
+	switch d.Op {
 	case Match:
 		return d.Lend - d.Lstart
 	case Delete:
 		return d.Lend - d.Lstart
 	case Insert:
-		return d.Rend -d.Rstart
+		return d.Rend - d.Rstart
 	default:
 		return 0
 	}
@@ -150,7 +150,7 @@ func Make(iface Interface) []Diff {
 }
 
 func Compact(diffs []Diff, contextLen int) []Diff {
-	prefix :=  func(match Diff)  Diff {
+	prefix := func(match Diff) Diff {
 		return Diff{
 			Op:     Match,
 			Lstart: match.Lstart,
@@ -159,8 +159,8 @@ func Compact(diffs []Diff, contextLen int) []Diff {
 			Rend:   match.Rstart + contextLen,
 		}
 	}
-	 suffix := func(match Diff) (Diff) {
-	 	return Diff{
+	suffix := func(match Diff) Diff {
+		return Diff{
 			Op:     Match,
 			Lstart: match.Lend - contextLen,
 			Lend:   match.Lend,
@@ -173,7 +173,7 @@ func Compact(diffs []Diff, contextLen int) []Diff {
 		out []Diff
 
 		prevMatch = Diff{}
-		prevOp     = noOp
+		prevOp    = noOp
 	)
 
 	for _, d := range diffs {
