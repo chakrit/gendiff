@@ -35,27 +35,38 @@ var cases = []testcase{
 		{Delete, 0, 3, 0, 0},
 		{Insert, 3, 3, 0, 3},
 	}},
-	{"abce", "acde", []Diff{
+	{"aBce", "acDe", []Diff{
 		{Match, 0, 1, 0, 1},
 		{Delete, 1, 2, 1, 1},
 		{Match, 2, 3, 1, 2},
 		{Insert, 3, 3, 2, 3},
 		{Match, 3, 4, 3, 4},
 	}},
-	{"aaabbbccceee", "aaacccdddeee", []Diff{
+	{ "aBaCa", "aCaBa", []Diff{
+		// the algorithm do a greedy match so the initial `aB` will match first
+		//
+		//      aB aC a
+		//   aC aB    a
+		//
+		{Delete, 0, 2, 0, 0},
+		{Match, 2, 4, 0, 2},
+		{Insert, 4, 4, 2, 4},
+		{Match, 4, 5, 4, 5},
+	}},
+	{"aaabbbccceee", "aaacccDDDeee", []Diff{
 		{Match, 0, 3, 0, 3},
 		{Delete, 3, 6, 3, 3},
 		{Match, 6, 9, 3, 6},
 		{Insert, 9, 9, 6, 9},
 		{Match, 9, 12, 9, 12},
 	}},
-	{"bbbcccddd", "ccceee", []Diff{
+	{"bbbCCCddd", "CCCeee", []Diff{
 		{Delete, 0, 3, 0, 0},
 		{Match, 3, 6, 0, 3},
 		{Delete, 6, 9, 3, 3},
 		{Insert, 9, 9, 3, 6},
 	}},
-	{"abbbbbbbcddddddde", "bbbbbbbddddddd", []Diff{
+	{"AbbbbbbbCdddddddE", "bbbbbbbddddddd", []Diff{
 		{Delete, 0, 1, 0, 0},
 		{Match, 1, 8, 0, 7},
 		{Delete, 8, 9, 7, 7},

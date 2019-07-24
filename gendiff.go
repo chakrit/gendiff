@@ -16,6 +16,10 @@
 // operations to perform on the left list to arrive at the right list.
 package gendiff
 
+import (
+	"fmt"
+)
+
 // Op marks the operation being done on a diff.
 type Op int
 
@@ -45,7 +49,7 @@ func (o Op) String() string {
 	case Insert:
 		return "insert"
 	default: // noOp and others
-        return ""
+		return ""
 	}
 }
 
@@ -94,9 +98,13 @@ func (d Diff) Len() int {
 	}
 }
 
-type cell = struct {
-	op  Op  // detected operation
-	lcs int // cumulative length of longest common substring
+type cell struct {
+	op     Op  // detected operation
+	length int // cumulative length of longest common substring
+}
+
+func (c cell) String() string {
+	return fmt.Sprintf("%s(%3d)", c.op.String()[:1], c.length)
 }
 
 // Make creates a list of `Diff`, that is a list of operations that can be
@@ -132,6 +140,9 @@ func Make(iface Interface) []Diff {
 		table[0][ridx] = cell{Insert, 0}
 	}
 
+	// start point, both string empty, they match
+	table[0][0] = cell{Match, 0}
+
 	// compute lcs solution and label the table with the right operations
 	for lidx = 1; lidx <= llen; lidx++ {
 		for ridx = 1; ridx <= rlen; ridx++ {
@@ -144,18 +155,28 @@ func Make(iface Interface) []Diff {
 			switch {
 			case iface.Equal(lidx-1, ridx-1):
 				// character match, extends the lcs counter
-				table[lidx][ridx] = cell{op: Match, lcs: lrcell.lcs + 1}
-			case lcell.lcs < rcell.lcs:
+				table[lidx][ridx] = cell{op: Match, length: lrcell.length + 1}
+			case lcell.length < rcell.length:
 				// the "right" string has longer lcs which means we are sitting
 				// on characters being deleted from the "left" string
-				table[lidx][ridx] = cell{op: Delete, lcs: rcell.lcs}
-			case lcell.lcs >= rcell.lcs:
+				table[lidx][ridx] = cell{op: Delete, length: rcell.length}
+			case lcell.length >= rcell.length:
 				// the "left" string has longer lcs which means we are sitting
 				// on an extra characters from the "right" string
-				table[lidx][ridx] = cell{op: Insert, lcs: lcell.lcs}
+				table[lidx][ridx] = cell{op: Insert, length: lcell.length}
 			}
 		}
 	}
+
+	// uncomment this block to dump the table to STDOUT, for debugging
+	//fmt.Println("-------------------")
+	//for lidx = range table {
+	//	for ridx = range table[lidx] {
+	//		fmt.Printf("%s ", table[lidx][ridx])
+	//	}
+	//	fmt.Println()
+	//}
+	//fmt.Println("-------------------")
 
 	// reconstruct solution backwards
 	var (
