@@ -259,27 +259,60 @@ func Compact(diffs []Diff, contextLen int) []Diff {
 		}
 	}
 
+	// short special cases
+	switch len(diffs) {
+	case 0:
+		return diffs
+
+	case 1:
+		if diffs[0].Op == Match {
+			return nil
+		} else {
+			return diffs
+		}
+
+	case 2:
+		if diffs[0].Op == Match && diffs[0].Len() > contextLen {
+			return []Diff{suffix(diffs[0]), diffs[1]}
+		} else if diffs[1].Op == Match && diffs[1].Len() > contextLen {
+			return []Diff{diffs[0], prefix(diffs[1])}
+		} else {
+			return diffs
+		}
+
+	default:
+		// invariant: len(diffs) >= 3
+	}
+
 	var (
 		out []Diff
 
-		prevMatch = Diff{}
-		prevOp    = noOp
+		first  = diffs[0]
+		middle = diffs[1 : len(diffs)-1]
+		last   = diffs[len(diffs)-1]
 	)
 
-	for _, d := range diffs {
-		switch {
-		case d.Op == Match && prevOp != Match && prevOp != noOp: // iiimmm -> iiim
-			out, prevMatch = append(out, prefix(d)), d
-		case d.Op != Match && prevOp == Match: // mmmiii -> miii
-			out = append(out, suffix(prevMatch), d)
-		case d.Op == Match:
-			// save for context, but ignored, only add if we have i or d following
-			prevMatch = d
-		default:
+	// first elem
+	if first.Op == Match && first.Len() > contextLen {
+		out = append(out, suffix(first))
+	} else {
+		out = append(out, first)
+	}
+
+	// in-between elems
+	for _, d := range middle {
+		if d.Op == Match && d.Len() > (contextLen*2) {
+			out = append(out, prefix(d), suffix(d))
+		} else {
 			out = append(out, d)
 		}
+	}
 
-		prevOp = d.Op
+	// last elem
+	if last.Op == Match && last.Len() > contextLen {
+		out = append(out, prefix(last))
+	} else {
+		out = append(out, last)
 	}
 
 	return out

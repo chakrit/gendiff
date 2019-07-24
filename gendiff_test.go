@@ -42,7 +42,7 @@ var cases = []testcase{
 		{Insert, 3, 3, 2, 3},
 		{Match, 3, 4, 3, 4},
 	}},
-	{ "aBaCa", "aCaBa", []Diff{
+	{"aBaCa", "aCaBa", []Diff{
 		// the algorithm do a greedy match so the initial `aB` will match first
 		//
 		//      aB aC a
@@ -101,6 +101,13 @@ var compactCases = []testcase{
 		{Match, 2, 4, 2, 4},
 		{Insert, 4, 4, 4, 7},
 	}},
+	{"aBaCa", "aCaBa", []Diff{
+		// NOTE: See same case above for explanation
+		{Delete, 0, 2, 0, 0},
+		{Match, 2, 4, 0, 2},
+		{Insert, 4, 4, 2, 4},
+		{Match, 4, 5, 4, 5},
+	}},
 
 	// longer strings
 	{"axxxxxxx", "xxxxxxx", []Diff{
@@ -129,7 +136,7 @@ var compactCases = []testcase{
 
 func TestCompact(t *testing.T) {
 	for _, test := range compactCases {
-		t.Run(test.Name(), func(tt *testing.T) {
+		t.Run("Compact"+test.Name(), func(tt *testing.T) {
 			r.Equal(tt, test.diff, Compact(Make(test), contextLen))
 		})
 	}
